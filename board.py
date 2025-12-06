@@ -5,6 +5,8 @@ from config import Config
 
 
 class Board:
+
+
     def __init__(self, config: Config):
         self.config = config
         self.cols = config.cols
@@ -13,6 +15,7 @@ class Board:
         self.grid: List[List[Optional[Tuple[int, int, int]]]] = [
             [None for _ in range(self.cols)] for _ in range(self.rows)
         ]
+
 
     def draw(self, screen: pygame.Surface) -> None:
         tile = self.config.tile_size
@@ -69,3 +72,9 @@ class Board:
 
         self.grid = new_grid
         return cleared
+
+
+    def reset(self) -> None:
+        self.grid = [
+            [None for _ in range(self.cols)] for _ in range(self.rows)
+        ]

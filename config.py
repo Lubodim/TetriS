@@ -1,4 +1,3 @@
-# config.py
 
 class Colors:
     WHITE = (255, 255, 255)

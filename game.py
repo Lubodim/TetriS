@@ -4,6 +4,7 @@ import pygame
 from config import Config
 from shape_factory import TetroFactory, Tetromino
 from board import Board
+from game_over import GameOverScreen
 
 
 class Game:
@@ -27,18 +28,26 @@ class Game:
         self.last_fall_time = pygame.time.get_ticks()
         self.running = True
 
-        self.paused = False
         self.font = pygame.font.SysFont("consolas", 20)
         self.big_font = pygame.font.SysFont("consolas", 32, bold=True)
 
-        self.yes_button = None
-        self.no_button = None
+        self.game_over = False
+        self.game_over_screen = GameOverScreen(
+            self.screen, self.colors, self.font, self.big_font
+        )
 
     def run(self):
         while self.running:
-            if self.paused:
-                self.handle_pause_events()
-                self.draw_pause_menu()
+            if self.game_over:
+                self.draw()
+                action = self.game_over_screen.handle_events()
+                self.game_over_screen.draw()
+
+                if action == "quit":
+                    self.running = False
+                elif action == "restart":
+                    self.reset_game()
+
             else:
                 self.handle_events()
                 self.update()
@@ -49,6 +58,13 @@ class Game:
         pygame.quit()
         sys.exit()
 
+    def reset_game(self):
+
+        self.board.reset()
+        self.current_piece = TetroFactory.create_random(self.config.cols)
+        self.game_over = False
+        self.last_fall_time = pygame.time.get_ticks()
+
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -57,8 +73,9 @@ class Game:
             if event.type == pygame.KEYDOWN:
 
                 if event.key == pygame.K_ESCAPE:
-                    self.paused = True
+                    self.game_over = True
                     return
+
                 if event.key == pygame.K_LEFT:
                     self.move_current_piece(-1, 0)
                 elif event.key == pygame.K_RIGHT:
@@ -72,24 +89,6 @@ class Game:
                     self.board.lock_tetromino(self.current_piece)
                     self.board.clear_full_lines()
                     self.spawn_new_piece()
-
-    def handle_pause_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.running = False
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    self.paused = False
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
-
-                if self.yes_button and self.yes_button.collidepoint(mx, my):
-                    self.running = False
-
-                if self.no_button and self.no_button.collidepoint(mx, my):
-                    self.paused = False
 
     def move_current_piece(self, dx: int, dy: int):
         self.current_piece.move(dx, dy)
@@ -118,7 +117,12 @@ class Game:
                 break
 
     def spawn_new_piece(self):
-        self.current_piece = TetroFactory.create_random(self.config.cols)
+        new_piece = TetroFactory.create_random(self.config.cols)
+
+        if not self.board.is_valid_position(new_piece):
+            self.game_over = True
+        else:
+            self.current_piece = new_piece
 
     def update(self):
         now = pygame.time.get_ticks()
@@ -155,36 +159,6 @@ class Game:
     def draw(self):
         self.screen.fill(self.colors["DARK_GRAY"])
         self.board.draw(self.screen)
-        self.draw_tetromino(self.current_piece)
-        pygame.display.flip()
-
-    def draw_pause_menu(self):
-
-        self.draw()
-
-        width = self.screen.get_width()
-        height = self.screen.get_height()
-
-        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        overlay.fill((60, 60, 60, 180))
-        self.screen.blit(overlay, (0, 0))
-
-        white = self.colors["WHITE"]
-
-        txt = self.big_font.render("ИСКАШ ЛИ ДА ИЗЛЕЗЕШ?", True, white)
-        txt_rect = txt.get_rect(center=(width // 2, height // 2 - 80))
-        self.screen.blit(txt, txt_rect)
-
-        self.yes_button = pygame.Rect(width // 2 - 150, height // 2, 120, 50)
-        self.no_button = pygame.Rect(width // 2 + 30, height // 2, 120, 50)
-
-        pygame.draw.rect(self.screen, (180, 0, 0), self.yes_button)
-        pygame.draw.rect(self.screen, (0, 180, 0), self.no_button)
-
-        yes_txt = self.font.render("ДА", True, white)
-        no_txt = self.font.render("НЕ", True, white)
-
-        self.screen.blit(yes_txt, yes_txt.get_rect(center=self.yes_button.center))
-        self.screen.blit(no_txt, no_txt.get_rect(center=self.no_button.center))
-
+        if not self.game_over:
+            self.draw_tetromino(self.current_piece)
         pygame.display.flip()
