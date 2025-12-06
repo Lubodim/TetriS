@@ -39,19 +39,26 @@ class Game:
     def run(self):
         while self.running:
             if self.game_over:
-                self.draw()
+
                 action = self.game_over_screen.handle_events()
+
+                self.draw()
                 self.game_over_screen.draw()
+                pygame.display.flip()
 
                 if action == "quit":
                     self.running = False
                 elif action == "restart":
                     self.reset_game()
+                elif action == "continue":
+                    self.game_over = False
+
 
             else:
                 self.handle_events()
                 self.update()
                 self.draw()
+                pygame.display.flip()
 
             self.clock.tick(self.config.fps)
 
@@ -60,7 +67,7 @@ class Game:
 
     def reset_game(self):
 
-        self.board.reset()
+        self.board = Board(self.config)
         self.current_piece = TetroFactory.create_random(self.config.cols)
         self.game_over = False
         self.last_fall_time = pygame.time.get_ticks()
@@ -161,4 +168,3 @@ class Game:
         self.board.draw(self.screen)
         if not self.game_over:
             self.draw_tetromino(self.current_piece)
-        pygame.display.flip()
