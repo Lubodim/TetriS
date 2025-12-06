@@ -26,17 +26,18 @@ screen = pygame.display.set_mode((WIDHT, HEIGHT))
 pygame.display.set_caption("My Lovely TetriS")
 
 clock = pygame.time.Clock()
-running = True
 
+def main():
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+        screen.fill(DARK_GRAY)
+        pygame.display.flip()
+        clock.tick(60)
+    pygame.quit()
+    sys.exit()
 
-    screen.fill(DARK_GRAY)
-    pygame.display.flip()
-    clock.tick(60)
-pygame.quit()
-sys.exit()
-
+main()
