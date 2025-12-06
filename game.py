@@ -64,6 +64,7 @@ class Game:
         self.score = 0
         self.lines_cleared = 0
         self.level = 1
+        self.fall_interval_ms = 500
         self.game_over = False
         self.last_fall_time = pygame.time.get_ticks()
 
@@ -128,7 +129,7 @@ class Game:
         if cleared > 0:
             self.lines_cleared += cleared
             self.score += self.calculate_score(cleared)
-            self.level = 1 + self.lines_cleared // 10
+            self.level = min(10, 1 + self.lines_cleared // 100)
             self.fall_interval_ms = max(120, 500 - (self.level - 1) * 30)
         self.spawn_new_piece()
 
