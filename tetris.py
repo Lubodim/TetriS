@@ -35,6 +35,22 @@ def draw_tetromino(screen, config: Config, tetromino: Tetromino):
 def is_valid_position(tetromino: Tetromino, config: Config) -> bool:
     return tetromino.is_within_bounds(config.cols, config.rows)
 
+def hard_drop(tetromino, config: Config):
+    moved = True
+    while moved:
+        test_piece = Tetromino(
+            tetromino.x,
+            tetromino.y,
+            list(tetromino.blocks),
+            tetromino.color,
+        )
+        test_piece.move(0, 1)
+
+        if is_valid_position(test_piece, config):
+            tetromino.move(0, 1)
+        else:
+            moved = False
+
 
 def main():
     pygame.init()
@@ -62,6 +78,7 @@ def main():
                 running = False
 
             if event.type == pygame.KEYDOWN:
+
                 if event.key == pygame.K_LEFT:
                     current_piece.move(-1, 0)
                     if not is_valid_position(current_piece, config):
@@ -82,6 +99,10 @@ def main():
                     current_piece.rotate()
                     if not is_valid_position(current_piece, config):
                         current_piece.blocks = old_blocks
+
+                elif event.key == pygame.K_SPACE:
+                    hard_drop(current_piece, config)
+                    current_piece = TetroFactory.create_random(config.cols)
 
         now = pygame.time.get_ticks()
         if now - last_fall_time >= fall_interval_ms:
