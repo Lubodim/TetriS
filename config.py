@@ -1,4 +1,3 @@
-
 class Colors:
     WHITE = (255, 255, 255)
     GRAY = (40, 40, 40)
@@ -21,10 +20,3 @@ class Config:
         self.tile_size = 30
         self.sidebar_width = 200
         self.fps = 60
-
-        self.colors = {
-            "WHITE": Colors.WHITE,
-            "GRAY": Colors.GRAY,
-            "DARK_GRAY": Colors.DARK_GRAY,
-            "BLACK": Colors.BLACK,
-        }

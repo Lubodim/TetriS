@@ -4,10 +4,7 @@ from config import Colors
 
 
 class Tetromino:
-
-
-    def __init__(self, x: int, y: int, blocks: List[Tuple[int, int]], color: Tuple[int, int, int],
-    ):
+    def __init__(self, x: int, y: int, blocks: List[Tuple[int, int]], color: Tuple[int, int, int]):
         self.x = x
         self.y = y
         self.blocks = blocks
@@ -24,15 +21,13 @@ class Tetromino:
         return [(self.x + bx, self.y + by) for (bx, by) in self.blocks]
 
     def can_move_down(self, rows: int) -> bool:
-
-        for (_, y) in self.get_cells():
+        for _, y in self.get_cells():
             if y + 1 >= rows:
                 return False
         return True
 
     def is_within_bounds(self, cols: int, rows: int) -> bool:
-
-        for (x, y) in self.get_cells():
+        for x, y in self.get_cells():
             if x < 0 or x >= cols:
                 return False
             if y >= rows:
@@ -41,21 +36,13 @@ class Tetromino:
 
 
 class TetroFactory:
-
     SHAPES = [
-        # I
         [(0, -1), (0, 0), (0, 1), (0, 2)],
-        # O
         [(0, 0), (1, 0), (0, 1), (1, 1)],
-        # T
         [(-1, 0), (0, 0), (1, 0), (0, 1)],
-        # L
         [(-1, 0), (0, 0), (1, 0), (-1, 1)],
-        # J
         [(-1, 0), (0, 0), (1, 0), (1, 1)],
-        # S
         [(-1, 1), (0, 1), (0, 0), (1, 0)],
-        # Z
         [(-1, 0), (0, 0), (0, 1), (1, 1)],
     ]
 
@@ -71,11 +58,8 @@ class TetroFactory:
 
     @classmethod
     def create_random(cls, board_cols: int) -> Tetromino:
-
         shape = random.choice(cls.SHAPES)
         color = random.choice(cls.COLORS)
-
         start_x = board_cols // 2
         start_y = 0
-
         return Tetromino(start_x, start_y, shape, color)
