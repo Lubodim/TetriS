@@ -47,7 +47,6 @@ def is_valid_position(tetromino: Tetromino, config: Config, board) -> bool:
 
         if y >= 0 and board[y][x] is not None:
             return False
-
     return True
 
 
@@ -56,6 +55,31 @@ def lock_piece_to_board(tetromino: Tetromino, board, config: Config):
     for x, y in tetromino.get_cells():
         if 0 <= x < config.cols and 0 <= y < config.rows:
             board[y][x] = tetromino.color
+
+
+def clear_full_lines(board, config: Config) -> int:
+
+    cols = config.cols
+    rows = config.rows
+
+    new_board = []
+    cleared = 0
+
+    for y in range(rows - 1, -1, -1):
+        if all(board[y][x] is not None for x in range(cols)):
+            cleared += 1
+        else:
+            new_board.append(board[y])
+
+    while len(new_board) < rows:
+        new_board.append([None for _ in range(cols)])
+
+    new_board.reverse()
+
+    for y in range(rows):
+        board[y] = new_board[y]
+
+    return cleared
 
 
 def hard_drop(tetromino: Tetromino, config: Config, board):
@@ -107,27 +131,28 @@ def main():
                 if event.key == pygame.K_LEFT:
                     current_piece.move(-1, 0)
                     if not is_valid_position(current_piece, config, board):
-                        current_piece.move(1, 0)
+                        current_piece.move(1, 0)  # връщаме
 
                 elif event.key == pygame.K_RIGHT:
                     current_piece.move(1, 0)
                     if not is_valid_position(current_piece, config, board):
-                        current_piece.move(-1, 0)
+                        current_piece.move(-1, 0)  # връщаме
 
                 elif event.key == pygame.K_DOWN:
                     current_piece.move(0, 1)
                     if not is_valid_position(current_piece, config, board):
-                        current_piece.move(0, -1)
+                        current_piece.move(0, -1)  # връщаме
 
                 elif event.key == pygame.K_UP:
                     old_blocks = current_piece.blocks.copy()
                     current_piece.rotate()
                     if not is_valid_position(current_piece, config, board):
-                        current_piece.blocks = old_blocks
+                        current_piece.blocks = old_blocks  # връщаме старото завъртане
 
                 elif event.key == pygame.K_SPACE:
                     hard_drop(current_piece, config, board)
                     lock_piece_to_board(current_piece, board, config)
+                    clear_full_lines(board, config)
                     current_piece = TetroFactory.create_random(config.cols)
 
         now = pygame.time.get_ticks()
@@ -144,6 +169,7 @@ def main():
                 current_piece.move(0, 1)
             else:
                 lock_piece_to_board(current_piece, board, config)
+                clear_full_lines(board, config)
                 current_piece = TetroFactory.create_random(config.cols)
 
             last_fall_time = now
