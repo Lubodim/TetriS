@@ -27,16 +27,27 @@ class Game:
         self.last_fall_time = pygame.time.get_ticks()
         self.running = True
 
+        self.paused = False
+        self.font = pygame.font.SysFont("consolas", 20)
+        self.big_font = pygame.font.SysFont("consolas", 32, bold=True)
+
+        self.yes_button = None
+        self.no_button = None
+
     def run(self):
         while self.running:
-            self.handle_events()
-            self.update()
-            self.draw()
+            if self.paused:
+                self.handle_pause_events()
+                self.draw_pause_menu()
+            else:
+                self.handle_events()
+                self.update()
+                self.draw()
+
             self.clock.tick(self.config.fps)
 
         pygame.quit()
         sys.exit()
-
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -45,29 +56,44 @@ class Game:
 
             if event.type == pygame.KEYDOWN:
 
+                if event.key == pygame.K_ESCAPE:
+                    self.paused = True
+                    return
                 if event.key == pygame.K_LEFT:
                     self.move_current_piece(-1, 0)
-
                 elif event.key == pygame.K_RIGHT:
                     self.move_current_piece(1, 0)
-
                 elif event.key == pygame.K_DOWN:
                     self.move_current_piece(0, 1)
-
                 elif event.key == pygame.K_UP:
                     self.rotate_current_piece()
-
                 elif event.key == pygame.K_SPACE:
                     self.hard_drop()
                     self.board.lock_tetromino(self.current_piece)
                     self.board.clear_full_lines()
                     self.spawn_new_piece()
 
+    def handle_pause_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.running = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    self.paused = False
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = pygame.mouse.get_pos()
+
+                if self.yes_button and self.yes_button.collidepoint(mx, my):
+                    self.running = False
+
+                if self.no_button and self.no_button.collidepoint(mx, my):
+                    self.paused = False
 
     def move_current_piece(self, dx: int, dy: int):
         self.current_piece.move(dx, dy)
         if not self.board.is_valid_position(self.current_piece):
-            # връщаме обратно
             self.current_piece.move(-dx, -dy)
 
     def rotate_current_piece(self):
@@ -114,7 +140,6 @@ class Game:
 
             self.last_fall_time = now
 
-
     def draw_tetromino(self, tetromino: Tetromino):
         tile = self.config.tile_size
         colors = self.colors
@@ -131,4 +156,35 @@ class Game:
         self.screen.fill(self.colors["DARK_GRAY"])
         self.board.draw(self.screen)
         self.draw_tetromino(self.current_piece)
+        pygame.display.flip()
+
+    def draw_pause_menu(self):
+
+        self.draw()
+
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+
+        overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        overlay.fill((60, 60, 60, 180))
+        self.screen.blit(overlay, (0, 0))
+
+        white = self.colors["WHITE"]
+
+        txt = self.big_font.render("ИСКАШ ЛИ ДА ИЗЛЕЗЕШ?", True, white)
+        txt_rect = txt.get_rect(center=(width // 2, height // 2 - 80))
+        self.screen.blit(txt, txt_rect)
+
+        self.yes_button = pygame.Rect(width // 2 - 150, height // 2, 120, 50)
+        self.no_button = pygame.Rect(width // 2 + 30, height // 2, 120, 50)
+
+        pygame.draw.rect(self.screen, (180, 0, 0), self.yes_button)
+        pygame.draw.rect(self.screen, (0, 180, 0), self.no_button)
+
+        yes_txt = self.font.render("ДА", True, white)
+        no_txt = self.font.render("НЕ", True, white)
+
+        self.screen.blit(yes_txt, yes_txt.get_rect(center=self.yes_button.center))
+        self.screen.blit(no_txt, no_txt.get_rect(center=self.no_button.center))
+
         pygame.display.flip()
