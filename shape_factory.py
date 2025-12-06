@@ -30,6 +30,15 @@ class Tetromino:
                 return False
         return True
 
+    def is_within_bounds(self, cols: int, rows: int) -> bool:
+
+        for (x, y) in self.get_cells():
+            if x < 0 or x >= cols:
+                return False
+            if y >= rows:
+                return False
+        return True
+
 
 class TetroFactory:
 

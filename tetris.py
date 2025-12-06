@@ -32,6 +32,10 @@ def draw_tetromino(screen, config: Config, tetromino: Tetromino):
         pygame.draw.rect(screen, colors["BLACK"], rect, 1)
 
 
+def is_valid_position(tetromino: Tetromino, config: Config) -> bool:
+    return tetromino.is_within_bounds(config.cols, config.rows)
+
+
 def main():
     pygame.init()
 
@@ -60,20 +64,40 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     current_piece.move(-1, 0)
+                    if not is_valid_position(current_piece, config):
+                        current_piece.move(1, 0)
+
                 elif event.key == pygame.K_RIGHT:
                     current_piece.move(1, 0)
+                    if not is_valid_position(current_piece, config):
+                        current_piece.move(-1, 0)
+
                 elif event.key == pygame.K_DOWN:
-                    if current_piece.can_move_down(config.rows):
-                        current_piece.move(0, 1)
+                    current_piece.move(0, 1)
+                    if not is_valid_position(current_piece, config):
+                        current_piece.move(0, -1)
+
                 elif event.key == pygame.K_UP:
+                    old_blocks = current_piece.blocks.copy()
                     current_piece.rotate()
+                    if not is_valid_position(current_piece, config):
+                        current_piece.blocks = old_blocks
 
         now = pygame.time.get_ticks()
         if now - last_fall_time >= fall_interval_ms:
-            if current_piece.can_move_down(config.rows):
+            test_piece = Tetromino(
+                current_piece.x,
+                current_piece.y,
+                list(current_piece.blocks),
+                current_piece.color,
+            )
+            test_piece.move(0, 1)
+
+            if is_valid_position(test_piece, config):
                 current_piece.move(0, 1)
             else:
                 current_piece = TetroFactory.create_random(config.cols)
+
             last_fall_time = now
 
         screen.fill(colors["DARK_GRAY"])
