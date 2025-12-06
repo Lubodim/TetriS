@@ -17,7 +17,7 @@ CYAN = (0, 206, 209)
 YELLOW = (255, 215, 0)
 MAGENTA = (186, 85, 211)
 ORANGE = (255, 140, 0)
-DARCK_GRAY = (30,30,30)
+DARK_GRAY = (30,30,30)
 
 
 
@@ -28,9 +28,15 @@ pygame.display.set_caption("My Lovely TetriS")
 clock = pygame.time.Clock()
 running = True
 
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill(DARCK_GRAY)
+    screen.fill(DARK_GRAY)
+    pygame.display.flip()
+    clock.tick(60)
+pygame.quit()
+sys.exit()
+
