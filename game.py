@@ -6,54 +6,109 @@ from shape_factory import TetroFactory, Tetromino
 from board import Board
 from game_over import GameOverScreen
 from sidebar import Sidebar
+from menu import MainMenu, OptionsMenu, GameSettings
 
 
 class Game:
     def __init__(self, config: Config):
         pygame.init()
+
         self.config = config
         self.colors = Colors
+
+        self.font = pygame.font.SysFont("consolas", 20)
+        self.big_font = pygame.font.SysFont("consolas", 32, bold=True)
+
         width = config.cols * config.tile_size + config.sidebar_width
         height = config.rows * config.tile_size
         self.screen = pygame.display.set_mode((width, height))
         pygame.display.set_caption("My Lovely TetriS")
+
         self.clock = pygame.time.Clock()
+
+        self.settings = GameSettings()
+        self.state = "menu"
+
+        self.menu = MainMenu(self.screen, self.font, self.big_font)
+        self.options_menu = OptionsMenu(self.screen, self.font, self.big_font, self.settings)
+
         self.board = Board(config)
         self.current_piece = TetroFactory.create_random(config.cols)
         self.next_piece = TetroFactory.create_random(config.cols)
-        self.fall_interval_ms = 500
+
         self.last_fall_time = pygame.time.get_ticks()
         self.running = True
+
         self.score = 0
         self.lines_cleared = 0
-        self.level = 1
-        self.font = pygame.font.SysFont("consolas", 20)
-        self.big_font = pygame.font.SysFont("consolas", 32, bold=True)
+        self._level = 1
+        self.fall_interval_ms = 500
+
         self.sidebar = Sidebar(config, self.font, self.big_font)
+
         self.game_over = False
         self.game_over_screen = GameOverScreen(
             self.screen, self.colors, self.font, self.big_font
         )
 
+    @property
+    def level(self) -> int:
+        return self._level
+
+    @level.setter
+    def level(self, value: int) -> None:
+        value = max(1, min(10, value))
+        self._level = value
+        self.fall_interval_ms = max(120, 500 - (self._level - 1) * 50)
+
+
     def run(self):
         while self.running:
-            if self.game_over:
-                action = self.game_over_screen.handle_events()
-                self.draw()
-                self.game_over_screen.draw()
+            if self.state == "menu":
+                action = self.menu.handle_events()
+                self.menu.draw()
                 pygame.display.flip()
-                if action == "quit":
-                    self.running = False
-                elif action == "restart":
+
+                if action == "play":
                     self.reset_game()
-                elif action == "continue":
-                    self.game_over = False
-            else:
-                self.handle_events()
-                self.update()
-                self.draw()
+                    self.level = self.settings.start_level
+                    self.state = "playing"
+
+                elif action == "options":
+                    self.state = "options"
+                elif action == "quit":
+                    self.running = False
+
+            elif self.state == "options":
+                action = self.options_menu.handle_events()
+                self.options_menu.draw()
                 pygame.display.flip()
+
+                if action == "back":
+                    self.state = "menu"
+                elif action == "quit":
+                    self.running = False
+
+            elif self.state == "playing":
+                if self.game_over:
+                    action = self.game_over_screen.handle_events()
+                    self.draw()
+                    self.game_over_screen.draw()
+                    pygame.display.flip()
+                    if action == "continue":
+                        self.game_over = False
+                    elif action == "restart":
+                        self.reset_game()
+                    elif action == "quit":
+                        self.running = False
+                else:
+                    self.handle_events()
+                    self.update()
+                    self.draw()
+                    pygame.display.flip()
+
             self.clock.tick(self.config.fps)
+
         pygame.quit()
         sys.exit()
 
@@ -64,7 +119,6 @@ class Game:
         self.score = 0
         self.lines_cleared = 0
         self.level = 1
-        self.fall_interval_ms = 500
         self.game_over = False
         self.last_fall_time = pygame.time.get_ticks()
 
@@ -129,8 +183,10 @@ class Game:
         if cleared > 0:
             self.lines_cleared += cleared
             self.score += self.calculate_score(cleared)
-            self.level = min(10, 1 + self.lines_cleared // 100)
-            self.fall_interval_ms = max(120, 500 - (self.level - 1) * 30)
+
+            new_level_from_lines = 1 + self.lines_cleared // 100
+            self.level = max(self.level, new_level_from_lines)
+
         self.spawn_new_piece()
 
     def update(self):

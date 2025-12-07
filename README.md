@@ -1,77 +1,126 @@
-# 🟦 Tetris — Python / Pygame Implementation
+# 🟦 Tetris — Modern Python / Pygame Edition
 
-A modern, modular, and extensible **Tetris clone built with Python and Pygame**.
+A polished and modular **Tetris clone built with Python and Pygame**, featuring levels, scoring system, dynamic speed, next-piece preview, full game state management and customizable configuration.
 
-Проектът е структуриран в няколко файла (Board, Tetromino, Factory, Config и др.), използва наследяване и позволява лесно разширение — добавяне на нови форми, UI подобрения, пауза, прозрачен overlay, премахване на редове, скорост на падане и още.
+Проектът използва изчистена архитектура с отделни модули: `Game`, `Board`, `Tetromino`, `Shape Factory`, `Sidebar`, `GameOverScreen`, което позволява лесно разширяване и поддръжка.
 
 ---
 
 ## ✨ Features
 
-- ✔️ Управление на падащи тетрис блокове  
-- ✔️ Автоматично запазване на блоковете в дъното  
-- ✔️ Изтриване на пълни редове + смъкване надолу  
-- ✔️ Пауза с **полупрозрачен overlay** и диалог за изход (Да/Не)  
-- ✔️ Конфигурация чрез отделен клас `Config`  
-- ✔️ Чисто разделени модули: `board.py`, `tetromino.py`, `shape_factory.py`, `config.py`, `main.py`  
-- ✔️ Лесно разширение
+### 🎮 Основен геймплей
+- Падащи тетрис фигури, генерирани от **TetroFactory**  
+- Завъртане, хоризонтално и вертикално движение  
+- **Hard Drop** със SPACE  
+- Заключване на фигурите върху дъската  
+- Разпознаване и премахване на запълнени редове  
+- Автоматично смъкване на блоковете над тях  
+- Game Over логика и пълно рестартиране
+
+### 🎚️ Нива и скорост
+Играчът преминава през **нива 1 → 10**, базирани на общия брой изчистени редове.
+
+Според кода:  
+- Нивото = `1 + (lines_cleared // 100)`  
+- Максимално ниво: **10**  
+- Падане на фигурите става **по-бързо на всяко следващо ниво** чрез:
+```
+fall_interval_ms = max(120, 500 - (level - 1) * 30)
+```
+Това означава:
+- Ниво 1 → 500ms  
+- Ниво 5 → 380ms  
+- Ниво 10 → 230ms  
+- Минимално: 120ms  
+
+### 🏆 Система за точки
+Според `calculate_score()` реалната точкова система е:
+
+| Изчистени линии | Точки (× Level) |
+|-----------------|----------------|
+| 1 линия | 100 |
+| 2 линии | 300 |
+| 3 линии | 500 |
+| 4 линии (Tetris!) | 800 |
+
+Точките се умножават по текущото ниво.
+
+Пример:  
+На ниво 4, ако играчът направи Tetris (4 линии):  
+`800 × 4 = 3200 точки`
+
+### 📊 Sidebar (дясна лента)
+Sidebar панелът показва:
+- **Score**
+- **Lines**
+- **Level**
+- **Next Piece Preview**
+
+Има красив преглед на следващата фигура със скалиране в прозорец от 5 клетки височина.
+
+### 💀 Game Over Screen
+При загуба се показва полупрозрачен overlay и меню с бутони:
+- **Нова игра**
+- **Продължи**
+- **Изход**
+
+Бутоните са цветни и се управляват и с мишка, и с клавиатура:
+- Enter → Restart  
+- Space → Continue  
+- Escape → Quit  
+
+### ⌨️ Controls
+
+| Key | Action |
+|-----|--------|
+| ← → | move piece |
+| ↑ | rotate |
+| ↓ | soft drop |
+| SPACE | hard drop |
+| ESC | open Game Over menu |
 
 ---
 
-## 🧩 Requirements
+## 🧩 Project Structure
 
 ```
-pip install pygame
+tetris/
+│── main.py             # Стартира играта
+│── game.py             # Главна логика на играта (цикъл, нива, точки, падаща скорост)
+│── board.py            # Игрална дъска & логика за редове
+│── shape_factory.py    # Генериране на случайни фигури
+│── config.py           # Конфигурация и цветове
+│── sidebar.py          # Дясна информационна лента
+│── game_over.py        # Game Over меню с бутони
+│── README.md
 ```
-
-Проектът работи с **Python 3.10+**.
 
 ---
 
 ## ▶️ Running the Game
 
 ```
+pip install pygame
 python main.py
 ```
 
 ---
 
-## 📁 Project Structure
-
-```
-tetris/
-│── main.py               # Главен игрови цикъл
-│── board.py              # Игралната дъска
-│── tetromino.py          # Базов клас за тетрис фигурите
-│── shape_factory.py      # Фабрика за генериране на Tetromino форми
-│── config.py             # Настройки (редове, колони, таймери и т.н.)
-│── assets/               # Шрифтове, картинки (по желание)
-│── README.md
-```
-
----
-
-## 🎮 Controls
-
-| Key | Action |
-|-----|--------|
-| ← → | Move left/right |
-| ↑   | Rotate |
-| ↓   | Soft drop |
-| SPACE | Hard drop |
-| ESC | Pause + диалог за изход |
-
----
-
 ## 🛠️ Customization
 
-Можеш лесно да променяш:
+### Промяна на размерите
+`Config.cols`, `Config.rows`, `Config.tile_size`
 
-- размера на решетката: `Config.rows`, `Config.cols`
-- размера на плочките: `Config.tile_size`
-- скоростта на падане
-- цветовете и външния вид
-- логиката за нови блокове чрез Shape Factory
+### Промяна на скоростта и трудността
+- Начална скорост: `fall_interval_ms` в `game.py`  
+- Формула за ниво  
+- Точкова система (в `calculate_score()`)
+
+### Цветове
+В `config.py → Colors` могат да се променят скиновете на фигурите и UI елементите.
+
+### Добавяне на нови форми
+Добави нов shape в `TetroFactory.SHAPES`.
 
 ---
 
@@ -84,25 +133,17 @@ Copyright (c) 2025 <Your Name>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+in the Software without restriction...
 ```
 
 ---
 
 ## 💬 Feedback & Contribution
 
-Ако искаш да продължим да го развиваме — добавяне на highscore, next preview, sound effects и т.н. — просто кажи!
+Ако искаш, мога да ти:
+- добавя **High Score система**  
+- добавя **анимации**, **sound effects**, **ghost piece**, **hold piece**  
+- направя **икона и GitHub cover image**  
+- създам **релийз версия** с EXE
+
+Само кажи! 😊
