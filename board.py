@@ -1,5 +1,7 @@
 from typing import List, Optional, Tuple
 import pygame
+import random
+
 
 from config import Config, Colors
 
@@ -60,3 +62,47 @@ class Board:
         self.grid = [
             [None for _ in range(self.cols)] for _ in range(self.rows)
         ]
+
+    def add_garbage_rows(self, count: int) -> None:
+        """
+        Добавя 'count' реда в долната част на дъската.
+        Всеки ред е 'незавършен' – с произволен брой блокчета
+        (от 1 до cols-1) на произволни позиции.
+        """
+        count = max(0, min(count, self.rows))
+        if count == 0:
+            return
+
+        # Цветове за блокчетата
+        colors = [
+            Colors.RED,
+            Colors.GREEN,
+            Colors.BLUE,
+            Colors.CYAN,
+            Colors.YELLOW,
+            Colors.MAGENTA,
+            Colors.ORANGE,
+        ]
+
+        new_rows: List[List[Optional[Tuple[int, int, int]]]] = []
+
+        for _ in range(count):
+            # колко клетки да са запълнени в този ред (1 до cols-1, за да не е пълен)
+            filled_cells = random.randint(1, self.cols - 1)
+
+            # на кои позиции да са блокчетата
+            filled_positions = set(random.sample(range(self.cols), filled_cells))
+
+            row: List[Optional[Tuple[int, int, int]]] = []
+            for x in range(self.cols):
+                if x in filled_positions:
+                    row.append(random.choice(colors))
+                else:
+                    row.append(None)
+            new_rows.append(row)
+
+        # Повдигаме съществуващите редове нагоре и добавяме новите отдолу
+        if count >= self.rows:
+            self.grid = new_rows[-self.rows:]
+        else:
+            self.grid = self.grid[count:] + new_rows

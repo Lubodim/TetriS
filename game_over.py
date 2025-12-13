@@ -2,14 +2,20 @@ import pygame
 
 
 class GameOverScreen:
-    def __init__(self, screen, colors, font, big_font):
+    def __init__(self, screen, colors, font, big_font, sounds=None):
         self.screen = screen
         self.colors = colors
         self.font = font
         self.big_font = big_font
+        self.sounds = sounds
+
         self.restart_button = None
         self.continue_button = None
         self.quit_button = None
+
+    def _click_sfx(self):
+        if self.sounds:
+            self.sounds.play_sfx("button")
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -17,18 +23,24 @@ class GameOverScreen:
                 return "quit"
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
+                    self._click_sfx()
                     return "restart"
                 if event.key == pygame.K_SPACE:
+                    self._click_sfx()
                     return "continue"
                 if event.key == pygame.K_ESCAPE:
+                    self._click_sfx()
                     return "quit"
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
                 if self.restart_button and self.restart_button.collidepoint(mx, my):
+                    self._click_sfx()
                     return "restart"
                 if self.continue_button and self.continue_button.collidepoint(mx, my):
+                    self._click_sfx()
                     return "continue"
                 if self.quit_button and self.quit_button.collidepoint(mx, my):
+                    self._click_sfx()
                     return "quit"
         return None
 

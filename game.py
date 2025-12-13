@@ -7,6 +7,8 @@ from board import Board
 from game_over import GameOverScreen
 from sidebar import Sidebar
 from menu import MainMenu, OptionsMenu, GameSettings
+from audio_manager import SoundManager
+
 
 
 class Game:
@@ -27,10 +29,12 @@ class Game:
         self.clock = pygame.time.Clock()
 
         self.settings = GameSettings()
+        self.sound = SoundManager(self.settings)
         self.state = "menu"
 
-        self.menu = MainMenu(self.screen, self.font, self.big_font)
-        self.options_menu = OptionsMenu(self.screen, self.font, self.big_font, self.settings)
+        # подаваме sound към менюто и game over екрана
+        self.menu = MainMenu(self.screen, self.font, self.big_font, self.sound)
+        self.options_menu = OptionsMenu(self.screen, self.font, self.big_font, self.settings, self.sound)
 
         self.board = Board(config)
         self.current_piece = TetroFactory.create_random(config.cols)
@@ -41,15 +45,17 @@ class Game:
 
         self.score = 0
         self.lines_cleared = 0
-        self._level = 1
+        self._level = 0
         self.fall_interval_ms = 500
 
         self.sidebar = Sidebar(config, self.font, self.big_font)
 
         self.game_over = False
+        self.paused = False
         self.game_over_screen = GameOverScreen(
-            self.screen, self.colors, self.font, self.big_font
+            self.screen, self.colors, self.font, self.big_font, self.sound
         )
+
 
     @property
     def level(self) -> int:
@@ -57,10 +63,9 @@ class Game:
 
     @level.setter
     def level(self, value: int) -> None:
-        value = max(1, min(10, value))
+        value = max(0, min(10, value))
         self._level = value
         self.fall_interval_ms = max(120, 500 - (self._level - 1) * 50)
-
 
     def run(self):
         while self.running:
@@ -70,12 +75,13 @@ class Game:
                 pygame.display.flip()
 
                 if action == "play":
+                    # Нова игра тръгва винаги от менюто
                     self.reset_game()
-                    self.level = self.settings.start_level
                     self.state = "playing"
 
                 elif action == "options":
                     self.state = "options"
+
                 elif action == "quit":
                     self.running = False
 
@@ -91,21 +97,42 @@ class Game:
 
             elif self.state == "playing":
                 if self.game_over:
+                    # Пауза или Game Over – показваме екрана
                     action = self.game_over_screen.handle_events()
                     self.draw()
                     self.game_over_screen.draw()
                     pygame.display.flip()
+
                     if action == "continue":
+                        # Продължаваме текущата игра (от пауза)
                         self.game_over = False
+                        self.paused = False
+
                     elif action == "restart":
-                        self.reset_game()
+                        # НОВА ИГРА -> връщаме в менюто,
+                        # за да може да смениш ниво и трудност
+                        self.game_over = False
+                        self.paused = False
+                        self.state = "menu"
+
                     elif action == "quit":
+                        # Пълно излизане от играта
                         self.running = False
+
                 else:
+                    # Нормален игрови цикъл
                     self.handle_events()
                     self.update()
                     self.draw()
                     pygame.display.flip()
+
+            # ъпдейтваме музиката според текущото състояние
+            self.sound.update_music(
+                state=self.state,
+                level=self.level,
+                game_over=self.game_over,
+                paused=self.paused,
+            )
 
             self.clock.tick(self.config.fps)
 
@@ -114,33 +141,53 @@ class Game:
 
     def reset_game(self):
         self.board = Board(self.config)
+        if self.settings.difficulty > 0:
+            self.board.add_garbage_rows(self.settings.difficulty)
+
         self.current_piece = TetroFactory.create_random(self.config.cols)
         self.next_piece = TetroFactory.create_random(self.config.cols)
+
         self.score = 0
         self.lines_cleared = 0
-        self.level = 1
+        self.level = self.settings.start_level
+
         self.game_over = False
+        self.paused = False  # <-- важно
         self.last_fall_time = pygame.time.get_ticks()
 
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
+                    # Пауза – показваме GameOverScreen, но с флаг paused=True
                     self.game_over = True
+                    self.paused = True
                     return
+
                 if event.key == pygame.K_LEFT:
                     self.move_current_piece(-1, 0)
+                    # тук може по-късно да добавиш move SFX
+
                 elif event.key == pygame.K_RIGHT:
                     self.move_current_piece(1, 0)
+                    # тук може по-късно да добавиш move SFX
+
                 elif event.key == pygame.K_DOWN:
                     self.move_current_piece(0, 1)
+                    # ако искаш и за soft drop звук – нов SFX
+
                 elif event.key == pygame.K_UP:
                     self.rotate_current_piece()
+                    self.sound.play_sfx("rotate")
+
                 elif event.key == pygame.K_SPACE:
+                    # HARD DROP
                     self.hard_drop()
                     self.on_piece_landed()
+                    self.sound.play_sfx("hard_drop")
 
     def move_current_piece(self, dx: int, dy: int):
         self.current_piece.move(dx, dy)
@@ -172,6 +219,8 @@ class Game:
         self.next_piece = TetroFactory.create_random(self.config.cols)
         if not self.board.is_valid_position(self.current_piece):
             self.game_over = True
+            self.paused = False
+
 
     def calculate_score(self, cleared: int) -> int:
         base = {1: 100, 2: 300, 3: 500, 4: 800}.get(cleared, cleared * 100)
@@ -181,6 +230,12 @@ class Game:
         self.board.lock_tetromino(self.current_piece)
         cleared = self.board.clear_full_lines()
         if cleared > 0:
+            # SFX за чистене на редове – различен при 4 реда
+            if cleared == 4:
+                self.sound.play_sfx("row_clear_4")
+            else:
+                self.sound.play_sfx("row_clear")
+
             self.lines_cleared += cleared
             self.score += self.calculate_score(cleared)
 
